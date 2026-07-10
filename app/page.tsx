@@ -1,65 +1,110 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import Link from "next/link";
+import { motion } from "framer-motion";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Zap, Bot, Target, Trophy, Flame, ChevronRight, CheckCircle2, Award } from "lucide-react";
+
+export default function LandingPage() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <div className="min-h-screen bg-mesh-gradient text-foreground flex flex-col relative overflow-hidden selection:bg-primary selection:text-primary-foreground">
+      {/* Background elements */}
+      <div className="absolute inset-0 z-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/10 via-background/0 to-background/0 pointer-events-none" />
+
+      {/* Navigation */}
+      <header className="sticky top-0 z-50 w-full border-b border-white/5 bg-background/30 backdrop-blur-md px-6 py-4 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center">
+            <Zap className="w-5 h-5 text-white" />
+          </div>
+          <span className="font-bold text-sm gradient-text">DevJourney AI</span>
+        </div>
+        <div className="flex items-center gap-4">
+          <Link href="/login">
+            <Button variant="ghost" size="sm" className="text-sm">Sign In</Button>
+          </Link>
+          <Link href="/register">
+            <Button size="sm" variant="gradient">Get Started</Button>
+          </Link>
+        </div>
+      </header>
+
+      {/* Hero Section */}
+      <section className="flex-1 flex flex-col items-center justify-center text-center px-6 py-20 md:py-32 relative z-10">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="max-w-4xl space-y-6"
+        >
+          <Badge variant="purple" className="px-4 py-1 text-xs tracking-wider uppercase font-semibold">
+            🚀 Powered by Gemini & Supabase
+          </Badge>
+          <h1 className="text-4xl md:text-7xl font-extrabold tracking-tight leading-tight">
+            Accelerate Your Developer Journey with <span className="gradient-text">AI Mentorship</span>
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+          <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto font-light">
+            Go from zero to production-ready developer in 6 months. Gamified roadmap, interactive quiz modules, structured English learning, and a smart AI tutor tailored just for you.
           </p>
+
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-6">
+            <Link href="/register">
+              <Button size="xl" variant="gradient" className="w-full sm:w-auto">
+                Start Your Journey Free <ChevronRight className="w-4 h-4 ml-2" />
+              </Button>
+            </Link>
+            <Link href="/login">
+              <Button size="xl" variant="glass" className="w-full sm:w-auto">
+                Explore Demo Dashboard
+              </Button>
+            </Link>
+          </div>
+        </motion.div>
+
+        {/* Feature Preview Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl w-full mt-24">
+          {[
+            {
+              icon: Bot,
+              title: "AI Mentor Support",
+              desc: "Realtime explanation, interactive quizzes, custom challenges, and professional code reviews.",
+              color: "text-purple-400",
+            },
+            {
+              icon: Target,
+              title: "6-Month Structured Path",
+              desc: "From HTML/CSS basics to advanced LLMs, Cloud Deployment, and App Security.",
+              color: "text-cyan-400",
+            },
+            {
+              icon: Trophy,
+              title: "Gamified Streaks & Badges",
+              desc: "Accumulate XP points, level up your profile, earn custom badges, and unlock certifications.",
+              color: "text-amber-400",
+            },
+          ].map((item, index) => (
+            <motion.div
+              key={index}
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: index * 0.1 }}
+              className="p-6 rounded-2xl bg-card border border-border/40 hover:border-primary/30 transition-all flex flex-col items-center text-center space-y-4 hover:shadow-lg hover:shadow-primary/5 group"
+            >
+              <div className="p-3 bg-secondary rounded-xl group-hover:scale-110 transition-transform">
+                <item.icon className={`w-6 h-6 ${item.color}`} />
+              </div>
+              <h3 className="font-bold text-lg">{item.title}</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
+            </motion.div>
+          ))}
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+      </section>
+
+      {/* Footer */}
+      <footer className="border-t border-white/5 py-8 text-center text-xs text-muted-foreground mt-auto">
+        <p>© 2026 DevJourney AI. Built for the modern builder.</p>
+      </footer>
     </div>
   );
 }
