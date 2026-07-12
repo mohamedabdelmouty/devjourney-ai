@@ -4,32 +4,29 @@ import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Trophy, ShieldAlert, Award, Star, Flame, Sparkles } from "lucide-react";
-
-interface AchievementItem {
-  id: number;
-  title: string;
-  desc: string;
-  xpReward: number;
-  icon: string;
-  rarity: "common" | "rare" | "epic" | "legendary";
-  unlocked: boolean;
-}
-
-const mockAchievements: AchievementItem[] = [
-  { id: 1, title: "First Step", desc: "Complete your first study day curriculum.", xpReward: 50, icon: "🎯", rarity: "common", unlocked: true },
-  { id: 2, title: "Hat Trick", desc: "Maintain a 3-day study streak.", xpReward: 100, icon: "🔥", rarity: "common", unlocked: true },
-  { id: 3, title: "Week Warrior", desc: "Maintain a 7-day study streak.", xpReward: 250, icon: "⚡", rarity: "rare", unlocked: true },
-  { id: 4, title: "Iron Will", desc: "Maintain a 30-day study streak.", xpReward: 1000, icon: "💎", rarity: "epic", unlocked: false },
-  { id: 5, title: "Web Foundation", desc: "Complete Month 1: Fullstack Foundations.", xpReward: 500, icon: "🌐", rarity: "epic", unlocked: false },
-  { id: 6, title: "The Graduate", desc: "Complete all 6 months of the curriculum.", xpReward: 10000, icon: "🎓", rarity: "legendary", unlocked: false },
-];
+import { useGame } from "@/components/providers/GameContext";
 
 export default function AchievementsPage() {
-  const totalXP = mockAchievements
+  const { xp, streak, completedDays } = useGame();
+  const completedCount = Object.keys(completedDays).length;
+
+  // Check if month 1 is completed (days 1-30)
+  const month1Completed = Array.from({ length: 30 }).every((_, i) => completedDays[`1-${i + 1}`]);
+
+  const achievements = [
+    { id: 1, title: "First Step", desc: "Complete your first study day curriculum.", xpReward: 50, icon: "🎯", rarity: "common" as const, unlocked: completedCount >= 1 },
+    { id: 2, title: "Hat Trick", desc: "Maintain a 3-day study streak.", xpReward: 100, icon: "🔥", rarity: "common" as const, unlocked: streak >= 3 },
+    { id: 3, title: "Week Warrior", desc: "Maintain a 7-day study streak.", xpReward: 250, icon: "⚡", rarity: "rare" as const, unlocked: streak >= 7 },
+    { id: 4, title: "Iron Will", desc: "Maintain a 30-day study streak.", xpReward: 1000, icon: "💎", rarity: "epic" as const, unlocked: streak >= 30 },
+    { id: 5, title: "Web Foundation", desc: "Complete Month 1: Fullstack Foundations.", xpReward: 500, icon: "🌐", rarity: "epic" as const, unlocked: month1Completed },
+    { id: 6, title: "The Graduate", desc: "Complete all 6 months of the curriculum.", xpReward: 10000, icon: "🎓", rarity: "legendary" as const, unlocked: completedCount >= 180 },
+  ];
+
+  const totalXP = achievements
     .filter((a) => a.unlocked)
     .reduce((sum, a) => sum + a.xpReward, 0);
 
-  const unlockedCount = mockAchievements.filter((a) => a.unlocked).length;
+  const unlockedCount = achievements.filter((a) => a.unlocked).length;
 
   return (
     <div className="space-y-6">
@@ -46,14 +43,14 @@ export default function AchievementsPage() {
           </div>
           <div>
             <p className="text-[10px] font-semibold text-muted-foreground uppercase">Unlocked Badges</p>
-            <p className="text-sm font-bold">{unlockedCount} / {mockAchievements.length}</p>
+            <p className="text-sm font-bold">{unlockedCount} / {achievements.length}</p>
           </div>
         </Card>
       </div>
 
       {/* Grid of Badges */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {mockAchievements.map((achievement) => (
+        {achievements.map((achievement) => (
           <Card
             key={achievement.id}
             className={`border transition-all flex flex-col justify-between ${

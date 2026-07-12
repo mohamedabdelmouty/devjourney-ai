@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,9 +9,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Clock, BookOpen, FileCode, CheckCircle2, AlertCircle, HelpCircle, Award } from "lucide-react";
+import { Clock, BookOpen, FileCode, CheckCircle2, AlertCircle, HelpCircle, Award, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import Confetti from "react-confetti";
+import { useGame } from "@/components/providers/GameContext";
+import { DayEntry } from "@/types";
 
 interface Question {
   q: string;
@@ -36,18 +39,89 @@ const quizQuestions: Question[] = [
   },
 ];
 
-export default function DailyStudyPage() {
+function DailyStudyContent() {
   const { toast } = useToast();
-  const [completed, setCompleted] = useState(false);
-  const [notes, setNotes] = useState("");
-  const [selectedAnswers, setSelectedAnswers] = useState<Record<number, number>>({});
-  const [quizChecked, setQuizChecked] = useState(false);
-  const [showConfetti, setShowConfetti] = useState(false);
+  const searchParams = useSearchParams();
+  const { completedDays, notes, completeDay, uncompleteDay, saveNote } = useGame();
 
-  // Section status state
+  const monthParam = searchParams.get("month");
+  const dayParam = searchParams.get("day");
+
+  const month = monthParam ? parseInt(monthParam, 10) : 1;
+  const day = dayParam ? parseInt(dayParam, 10) : 1;
+  const key = `${month}-${day}`;
+
+  const isCompleted = !!completedDays[key];
+  const storedNote = notes[key] || "";
+
+  const [dayData, setDayData] = useState<DayEntry | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [localNotes, setLocalNotes] = useState(storedNote);
+
+  // Section checklist states
   const [theoryDone, setTheoryDone] = useState(false);
   const [practiceDone, setPracticeDone] = useState(false);
   const [englishDone, setEnglishDone] = useState(false);
+
+  // Sync checklist when completed changes
+  useEffect(() => {
+    if (isCompleted) {
+      setTheoryDone(true);
+      setPracticeDone(true);
+      setEnglishDone(true);
+    } else {
+      setTheoryDone(false);
+      setPracticeDone(false);
+      setEnglishDone(false);
+    }
+  }, [isCompleted]);
+
+  // Sync note state when month/day changes
+  useEffect(() => {
+    setLocalNotes(storedNote);
+  }, [key, storedNote]);
+
+  const monthSlugs = [
+    { month: 1, file: "month1_fullstack" },
+    { month: 2, file: "month2_frontend" },
+    { month: 3, file: "month3_backend" },
+    { month: 4, file: "month4_ai" },
+    { month: 5, file: "month5_appsec" },
+    { month: 6, file: "month6_cloud_devsecops" },
+  ];
+
+  useEffect(() => {
+    async function fetchDayData() {
+      setLoading(true);
+      try {
+        const activeMonth = monthSlugs.find((m) => m.month === month);
+        if (!activeMonth) {
+          throw new Error("Invalid month parameter");
+        }
+        const res = await fetch(`/content/${activeMonth.file}.json`);
+        if (!res.ok) {
+          throw new Error("Failed to load curriculum month file");
+        }
+        const days: DayEntry[] = await res.json();
+        const activeDay = days.find((d) => d.day === day);
+        if (activeDay) {
+          setDayData(activeDay);
+        } else {
+          setDayData(null);
+        }
+      } catch (err) {
+        console.error("Error loading day content", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchDayData();
+  }, [month, day]);
+
+  const [selectedAnswers, setSelectedAnswers] = useState<Record<number, number>>({});
+  const [quizChecked, setQuizChecked] = useState(false);
 
   const handleQuizAnswer = (qIndex: number, optIndex: number) => {
     setSelectedAnswers((prev) => ({ ...prev, [qIndex]: optIndex }));
@@ -63,7 +137,7 @@ export default function DailyStudyPage() {
       return;
     }
 
-    setCompleted(true);
+    completeDay(month, day);
     setShowConfetti(true);
     toast({
       variant: "success",
@@ -75,19 +149,65 @@ export default function DailyStudyPage() {
     }, 4500);
   };
 
+  const handleToggleUncomplete = () => {
+    uncompleteDay(month, day);
+    toast({
+      title: "Progress Reset",
+      description: "Day marked as incomplete. XP has been adjusted.",
+    });
+  };
+
+  const handleNotesChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const val = e.target.value;
+    setLocalNotes(val);
+    saveNote(month, day, val);
+  };
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] gap-3">
+        <RefreshCw className="w-8 h-8 text-primary animate-spin" />
+        <p className="text-sm text-muted-foreground">Loading day curriculum details...</p>
+      </div>
+    );
+  }
+
+  if (!dayData) {
+    return (
+      <div className="text-center py-12 space-y-3">
+        <AlertCircle className="w-12 h-12 text-destructive mx-auto" />
+        <h3 className="text-lg font-bold">Curriculum Day Not Found</h3>
+        <p className="text-sm text-muted-foreground">
+          We couldn&apos;t find Day {day} of Month {month} in the curriculum files.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 relative">
       {showConfetti && <Confetti width={1200} height={800} />}
 
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <Badge variant="purple" className="mb-2">Month 1 / Day 12</Badge>
-          <h2 className="text-3xl font-extrabold tracking-tight">HTML Semantic Elements</h2>
-          <p className="text-muted-foreground text-sm">Improve SEO, accessibility, and clean document outlines.</p>
+          <Badge variant="purple" className="mb-2">Month {month} / Day {day}</Badge>
+          <h2 className="text-3xl font-extrabold tracking-tight capitalize">
+            {dayData.topics.split(",").join(" & ")}
+          </h2>
+          <p className="text-muted-foreground text-sm">
+            Focus topics: {dayData.topics}
+          </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Clock className="w-4 h-4 text-muted-foreground" />
-          <span className="text-sm font-semibold text-muted-foreground">Est. Time: 3.5 hrs</span>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Clock className="w-4 h-4 text-muted-foreground" />
+            <span className="text-sm font-semibold text-muted-foreground">Est. Time: {dayData.fullStack}</span>
+          </div>
+          {isCompleted && (
+            <Button variant="outline" size="sm" onClick={handleToggleUncomplete} className="text-xs text-destructive hover:bg-destructive/10">
+              Reset Progress
+            </Button>
+          )}
         </div>
       </div>
 
@@ -104,21 +224,21 @@ export default function DailyStudyPage() {
             <TabsContent value="theory">
               <Card className="border-border/40 mt-4">
                 <CardHeader>
-                  <CardTitle className="text-lg">HTML5 Document Structures</CardTitle>
-                  <CardDescription>Understanding standard blocks vs layouts</CardDescription>
+                  <CardTitle className="text-lg">Theoretical Framework</CardTitle>
+                  <CardDescription>Deep dive into {dayData.topics}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4 text-sm leading-relaxed">
                   <p>
-                    Semantic HTML refers to tags that introduce meaning to the web page rather than just presentation. For example, a <code>&lt;header&gt;</code> element conveys that the enclosed text acts as heading metadata or navigation links.
+                    Today we are studying <strong>{dayData.topics}</strong>. Developing a solid mental model of these concepts is essential to implementing high-quality code.
                   </p>
                   <p>
-                    Key tags to master today include:
+                    In this session, you should focus on the following guidelines:
                   </p>
                   <ul className="list-disc list-inside pl-4 space-y-2 text-muted-foreground">
-                    <li><code>&lt;main&gt;</code> — Unique central document contents</li>
-                    <li><code>&lt;section&gt;</code> — Semantic section grouping</li>
-                    <li><code>&lt;article&gt;</code> — Self-contained modular content syndication</li>
-                    <li><code>&lt;aside&gt;</code> — Context-relative complementary side-bars</li>
+                    <li>Analyze syntax structure and core building blocks.</li>
+                    <li>Understand standard API behaviors, parameters, and return types.</li>
+                    <li>Evaluate best practices regarding efficiency, responsiveness, and performance.</li>
+                    <li>Research documentation and read related reference materials.</li>
                   </ul>
                 </CardContent>
               </Card>
@@ -127,20 +247,18 @@ export default function DailyStudyPage() {
             <TabsContent value="practice">
               <Card className="border-border/40 mt-4">
                 <CardHeader>
-                  <CardTitle className="text-lg">Daily Coding Challenge</CardTitle>
-                  <CardDescription>Transform legacy divs to semantic outline</CardDescription>
+                  <CardTitle className="text-lg">Coding Challenge</CardTitle>
+                  <CardDescription>Apply your knowledge with concrete practice</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="p-4 rounded-lg bg-zinc-950 border border-zinc-800 font-mono text-xs text-purple-300">
-                    {`<!-- Transform this to Semantic tags -->
-<div class="header">Navbar</div>
-<div class="main-body">
-  <div class="sidebar">Filters</div>
-  <div class="content">Primary Article</div>
-</div>`}
+                  <div className="p-4 rounded-lg bg-zinc-950 border border-zinc-800 font-mono text-xs text-purple-300 space-y-2">
+                    <p className="text-zinc-500">// Practice Objective: {dayData.practice}</p>
+                    <p>1. Open your code editor and create a new scratch branch.</p>
+                    <p>2. Implement a mini-application or service utilizing today&apos;s topics.</p>
+                    <p>3. Test edge cases and verify responsiveness.</p>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Tip: Use VS Code or your browser dev-tools to inspect element hierarchies.
+                    Estimated practice duration: {dayData.practice || "45 minutes"}. Don&apos;t skip compiling and running!
                   </p>
                 </CardContent>
               </Card>
@@ -149,16 +267,21 @@ export default function DailyStudyPage() {
             <TabsContent value="english">
               <Card className="border-border/40 mt-4">
                 <CardHeader>
-                  <CardTitle className="text-lg">Developer Vocabulary</CardTitle>
-                  <CardDescription>Words of the Day: Semantic & Accessibility</CardDescription>
+                  <CardTitle className="text-lg">Developer English & Jargon</CardTitle>
+                  <CardDescription>Master communication for global tech teams</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4 text-sm leading-relaxed">
                   <p>
-                    <strong>Semantic (/sɪˈmæn.tɪk/):</strong> Relating to meaning in language or logic. In coding, using tags that describe their purpose clearly to humans and machinery.
+                    Review vocabulary and phrasing related to <strong>{dayData.english}</strong>. 
                   </p>
-                  <p>
-                    <strong>Accessibility (a11y):</strong> Designing digital platforms so people of all visual, auditory, and physical capabilities can navigate them seamlessly.
+                  <p className="text-muted-foreground font-medium">
+                    Key concepts to define in English:
                   </p>
+                  <ul className="list-disc list-inside pl-4 space-y-1 text-muted-foreground text-xs">
+                    <li>Technical explanations of the today&apos;s structures.</li>
+                    <li>Discussing bottlenecks and solutions with peer engineers.</li>
+                    <li>Writing clear code comments and documentation.</li>
+                  </ul>
                 </CardContent>
               </Card>
             </TabsContent>
@@ -169,9 +292,9 @@ export default function DailyStudyPage() {
             <CardHeader>
               <div className="flex items-center gap-2">
                 <HelpCircle className="w-5 h-5 text-primary" />
-                <CardTitle className="text-lg">Daily Quiz Review</CardTitle>
+                <CardTitle className="text-lg">Retention Review Quiz</CardTitle>
               </div>
-              <CardDescription>Test your retention of today&apos;s learning</CardDescription>
+              <CardDescription>Validate what you just studied</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               {quizQuestions.map((qObj, qIndex) => (
@@ -211,32 +334,32 @@ export default function DailyStudyPage() {
           <Card className="border-border/40">
             <CardHeader>
               <CardTitle className="text-base font-bold">Progress Checklist</CardTitle>
-              <CardDescription>Track today&apos;s active study targets</CardDescription>
+              <CardDescription>Complete all tasks to unlock XP</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center space-x-3">
-                <Checkbox id="theory" checked={theoryDone} onCheckedChange={(v) => setTheoryDone(!!v)} />
-                <label htmlFor="theory" className="text-xs font-medium cursor-pointer">Theory Lesson (HTML5 tags)</label>
+                <Checkbox id="theory" checked={theoryDone} onCheckedChange={(v) => !isCompleted && setTheoryDone(!!v)} disabled={isCompleted} />
+                <label htmlFor="theory" className="text-xs font-medium cursor-pointer">Theory Lesson ({dayData.fullStack})</label>
               </div>
               <div className="flex items-center space-x-3">
-                <Checkbox id="practice" checked={practiceDone} onCheckedChange={(v) => setPracticeDone(!!v)} />
-                <label htmlFor="practice" className="text-xs font-medium cursor-pointer">Practice coding conversion</label>
+                <Checkbox id="practice" checked={practiceDone} onCheckedChange={(v) => !isCompleted && setPracticeDone(!!v)} disabled={isCompleted} />
+                <label htmlFor="practice" className="text-xs font-medium cursor-pointer">Hands-on Practice ({dayData.practice})</label>
               </div>
               <div className="flex items-center space-x-3">
-                <Checkbox id="english" checked={englishDone} onCheckedChange={(v) => setEnglishDone(!!v)} />
-                <label htmlFor="english" className="text-xs font-medium cursor-pointer">Review Technical English words</label>
+                <Checkbox id="english" checked={englishDone} onCheckedChange={(v) => !isCompleted && setEnglishDone(!!v)} disabled={isCompleted} />
+                <label htmlFor="english" className="text-xs font-medium cursor-pointer">Technical English vocabulary ({dayData.english})</label>
               </div>
             </CardContent>
             <CardFooter>
               <Button
                 onClick={handleMarkComplete}
-                variant={completed ? "secondary" : "gradient"}
+                variant={isCompleted ? "secondary" : "gradient"}
                 className="w-full"
-                disabled={completed}
+                disabled={isCompleted}
               >
-                {completed ? (
+                {isCompleted ? (
                   <>
-                    <CheckCircle2 className="w-4 h-4 mr-1 text-green-400" /> Completed Today!
+                    <CheckCircle2 className="w-4 h-4 mr-1 text-green-400" /> Completed Day!
                   </>
                 ) : (
                   "Mark Today Complete (+150 XP)"
@@ -255,8 +378,8 @@ export default function DailyStudyPage() {
             </CardHeader>
             <CardContent className="space-y-3">
               {[
-                { title: "MDN Guide to Semantics", url: "https://developer.mozilla.org" },
-                { title: "freeCodeCamp HTML Module", url: "https://freecodecamp.org" },
+                { title: "MDN Web Documentation", url: "https://developer.mozilla.org" },
+                { title: "freeCodeCamp Curriculum", url: "https://freecodecamp.org" },
               ].map((res, i) => (
                 <a
                   key={i}
@@ -276,19 +399,32 @@ export default function DailyStudyPage() {
           <Card className="border-border/40">
             <CardHeader>
               <CardTitle className="text-sm font-bold">Personal Notebook</CardTitle>
-              <CardDescription>Autosaved to profile</CardDescription>
+              <CardDescription>Autosaved to browser storage</CardDescription>
             </CardHeader>
             <CardContent>
               <Textarea
                 placeholder="Write code snippets or key notes from today's lesson here..."
                 rows={5}
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
+                value={localNotes}
+                onChange={handleNotesChange}
               />
             </CardContent>
           </Card>
         </div>
       </div>
     </div>
+  );
+}
+
+export default function DailyStudyPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex flex-col items-center justify-center min-h-[400px] gap-3">
+        <RefreshCw className="w-8 h-8 text-primary animate-spin" />
+        <p className="text-sm text-muted-foreground">Initializing daily study page...</p>
+      </div>
+    }>
+      <DailyStudyContent />
+    </Suspense>
   );
 }

@@ -6,25 +6,21 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Award, Download, ShieldCheck, UserCheck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-
-interface CertificateItem {
-  id: number;
-  month: number;
-  title: string;
-  unlocked: boolean;
-  code: string;
-  date: string;
-}
-
-const mockCertificates: CertificateItem[] = [
-  { id: 1, month: 1, title: "Fullstack Foundations Certificate", unlocked: true, code: "DJ-2026-M1-4921", date: "July 1, 2026" },
-  { id: 2, month: 2, title: "Frontend Mastery Certificate", unlocked: false, code: "DJ-2026-M2-0000", date: "Pending" },
-  { id: 3, month: 3, title: "Backend Engineering Certificate", unlocked: false, code: "DJ-2026-M3-0000", date: "Pending" },
-];
+import { useGame } from "@/components/providers/GameContext";
 
 export default function CertificatesPage() {
   const { toast } = useToast();
-  const [certs, setCerts] = useState<CertificateItem[]>(mockCertificates);
+  const { completedDays } = useGame();
+
+  const isMonthCompleted = (m: number) => {
+    return Array.from({ length: 30 }).every((_, i) => completedDays[`${m}-${i + 1}`]);
+  };
+
+  const certs = [
+    { id: 1, month: 1, title: "Fullstack Foundations Certificate", unlocked: isMonthCompleted(1), code: isMonthCompleted(1) ? "DJ-2026-M1-4921" : "DJ-2026-M1-LOCKED", date: isMonthCompleted(1) ? "July 1, 2026" : "Pending" },
+    { id: 2, month: 2, title: "Frontend Mastery Certificate", unlocked: isMonthCompleted(2), code: isMonthCompleted(2) ? "DJ-2026-M2-8812" : "DJ-2026-M2-LOCKED", date: isMonthCompleted(2) ? "August 1, 2026" : "Pending" },
+    { id: 3, month: 3, title: "Backend Engineering Certificate", unlocked: isMonthCompleted(3), code: isMonthCompleted(3) ? "DJ-2026-M3-9023" : "DJ-2026-M3-LOCKED", date: isMonthCompleted(3) ? "September 1, 2026" : "Pending" },
+  ];
 
   const handleDownload = (title: string) => {
     toast({

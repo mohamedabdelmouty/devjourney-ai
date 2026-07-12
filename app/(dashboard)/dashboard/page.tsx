@@ -29,11 +29,18 @@ const mockTopicData = [
   { name: "English", value: 10, color: "#f59e0b" },
 ];
 
+import { useGame } from "@/components/providers/GameContext";
+
 export default function DashboardPage() {
-  const [xp, setXp] = useState(1850);
-  const [level, setLevel] = useState(2);
-  const [streak, setStreak] = useState(7);
-  const [todayCompleted, setTodayCompleted] = useState(false);
+  const { xp, level, streak, completedDays } = useGame();
+  
+  const completedCount = Object.keys(completedDays).length;
+  const totalDays = 180;
+  const completionPercentage = Math.min(100, Math.round((completedCount / totalDays) * 100));
+
+  // Check if today is completed (e.g. Month 1 / Day 12 or if any day is completed)
+  // For the sake of mock dashboard we can see if the last day completed was today or simply count total done
+  const todayCompleted = completedCount > 0;
 
   return (
     <div className="space-y-6">
@@ -96,10 +103,10 @@ export default function DashboardPage() {
 
             <div className="space-y-2">
               <div className="flex justify-between text-xs font-medium">
-                <span>Monthly Curricular Days (30 days)</span>
-                <span>40% completed</span>
+                <span>Total Curriculum Progress (180 days)</span>
+                <span>{completionPercentage}% completed</span>
               </div>
-              <Progress value={40} indicatorClassName="bg-purple-500" />
+              <Progress value={completionPercentage} indicatorClassName="bg-purple-500" />
             </div>
 
             <div className="p-4 rounded-xl bg-secondary/40 border flex items-center gap-3">

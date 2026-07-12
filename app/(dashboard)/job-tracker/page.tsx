@@ -7,25 +7,11 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Briefcase, ArrowRight, Plus, MapPin, DollarSign, Calendar, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-
-interface JobItem {
-  id: number;
-  company: string;
-  role: string;
-  location: string;
-  salary: string;
-  status: "applied" | "interviewing" | "offer" | "rejected";
-}
-
-const initialJobs: JobItem[] = [
-  { id: 1, company: "Google", role: "Junior Frontend Engineer", location: "Mountain View, CA (Hybrid)", salary: "$120,000/yr", status: "applied" },
-  { id: 2, company: "Stripe", role: "Fullstack Engineer", location: "San Francisco, CA (Remote)", salary: "$140,000/yr", status: "interviewing" },
-  { id: 3, company: "Vercel", role: "Next.js Core Intern", location: "Remote", salary: "$90,000/yr", status: "offer" },
-];
+import { useGame, JobItem } from "@/components/providers/GameContext";
 
 export default function JobTrackerPage() {
   const { toast } = useToast();
-  const [jobs, setJobs] = useState<JobItem[]>(initialJobs);
+  const { jobs, addJob, updateJobStatus, deleteJob } = useGame();
 
   // New job form state
   const [company, setCompany] = useState("");
@@ -44,16 +30,7 @@ export default function JobTrackerPage() {
       return;
     }
 
-    const newJob: JobItem = {
-      id: Date.now(),
-      company,
-      role,
-      location: location || "Remote",
-      salary: salary || "TBD",
-      status: "applied",
-    };
-
-    setJobs((prev) => [...prev, newJob]);
+    addJob(company, role, location, salary);
     setCompany("");
     setRole("");
     setLocation("");
@@ -67,9 +44,7 @@ export default function JobTrackerPage() {
   };
 
   const handleMoveStatus = (id: number, nextStatus: JobItem["status"]) => {
-    setJobs((prev) =>
-      prev.map((j) => (j.id === id ? { ...j, status: nextStatus } : j))
-    );
+    updateJobStatus(id, nextStatus);
     toast({
       variant: "success",
       title: "Status Promoted",
@@ -78,7 +53,7 @@ export default function JobTrackerPage() {
   };
 
   const handleDelete = (id: number) => {
-    setJobs((prev) => prev.filter((j) => j.id !== id));
+    deleteJob(id);
     toast({
       title: "Application Deleted",
       description: "Removed from job tracking system.",

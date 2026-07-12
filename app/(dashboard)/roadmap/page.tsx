@@ -10,22 +10,43 @@ import { Map, Search, Filter, BookOpen, Calendar, Circle, CheckCircle2, ChevronR
 import { RoadmapMonth, DayEntry } from "@/types";
 import { getMonthColor, getMonthTitle } from "@/lib/utils";
 import Link from "next/link";
+import { useGame } from "@/components/providers/GameContext";
 
 export default function RoadmapPage() {
+  const { completedDays } = useGame();
   const [months, setMonths] = useState<RoadmapMonth[]>([]);
   const [selectedMonth, setSelectedMonth] = useState<number>(1);
   const [search, setSearch] = useState("");
   const [filterTopic, setFilterTopic] = useState("All");
   const [loading, setLoading] = useState(true);
 
+  const monthSlugs = [
+    { month: 1, file: "month1_fullstack", title: "Fullstack Foundations" },
+    { month: 2, file: "month2_frontend", title: "Advanced Frontend" },
+    { month: 3, file: "month3_backend", title: "Backend Architecture" },
+    { month: 4, file: "month4_ai", title: "AI Engineering" },
+    { month: 5, file: "month5_appsec", title: "Application Security" },
+    { month: 6, file: "month6_cloud_devsecops", title: "Cloud & DevSecOps" },
+  ];
+
   useEffect(() => {
     async function loadData() {
       try {
-        const res = await fetch("/api/roadmap");
-        const json = await res.json();
-        if (json.months) {
-          setMonths(json.months);
-        }
+        const fetchedMonths = await Promise.all(
+          monthSlugs.map(async (m) => {
+            const res = await fetch(`/content/${m.file}.json`);
+            const days = await res.json();
+            return {
+              month: m.month,
+              slug: m.file,
+              title: m.title,
+              color: m.month === 1 ? "purple" : m.month === 2 ? "cyan" : m.month === 3 ? "emerald" : m.month === 4 ? "blue" : m.month === 5 ? "red" : "amber",
+              icon: "Map",
+              days: days,
+            };
+          })
+        );
+        setMonths(fetchedMonths);
       } catch (err) {
         console.error("Failed to load roadmap data", err);
       } finally {
@@ -149,10 +170,10 @@ export default function RoadmapPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start">
-                  <Badge variant={day.done ? "success" : "warning"} className="text-xs">
-                    {day.done ? "Done" : "Pending"}
+                  <Badge variant={completedDays[`${selectedMonth}-${day.day}`] ? "success" : "warning"} className="text-xs">
+                    {completedDays[`${selectedMonth}-${day.day}`] ? "Done" : "Pending"}
                   </Badge>
-                  <Link href="/daily" className="w-full sm:w-auto">
+                  <Link href={`/daily?month=${selectedMonth}&day=${day.day}`} className="w-full sm:w-auto">
                     <Button size="sm" variant="outline" className="w-full">
                       Start Study <ChevronRight className="w-4 h-4 ml-1" />
                     </Button>

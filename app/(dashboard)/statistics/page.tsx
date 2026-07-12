@@ -3,27 +3,40 @@
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Legend } from "recharts";
 import { BarChart3, Clock, TrendingUp, Calendar, Zap } from "lucide-react";
-
-const xpHistoryData = [
-  { day: "Day 1", xp: 100 },
-  { day: "Day 3", xp: 350 },
-  { day: "Day 5", xp: 600 },
-  { day: "Day 7", xp: 950 },
-  { day: "Day 9", xp: 1200 },
-  { day: "Day 11", xp: 1550 },
-  { day: "Day 12", xp: 1850 },
-];
-
-const monthCompletionData = [
-  { name: "Month 1", completed: 12, total: 30 },
-  { name: "Month 2", completed: 0, total: 30 },
-  { name: "Month 3", completed: 0, total: 30 },
-  { name: "Month 4", completed: 0, total: 30 },
-  { name: "Month 5", completed: 0, total: 30 },
-  { name: "Month 6", completed: 0, total: 30 },
-];
+import { useGame } from "@/components/providers/GameContext";
 
 export default function StatisticsPage() {
+  const { xp, completedDays } = useGame();
+  const completedCount = Object.keys(completedDays).length;
+  
+  // Calculate completed days per month
+  const getCompletedCountForMonth = (m: number) => {
+    return Array.from({ length: 30 }).filter((_, i) => completedDays[`${m}-${i + 1}`]).length;
+  };
+
+  const monthCompletionData = [
+    { name: "Month 1", completed: getCompletedCountForMonth(1), total: 30 },
+    { name: "Month 2", completed: getCompletedCountForMonth(2), total: 30 },
+    { name: "Month 3", completed: getCompletedCountForMonth(3), total: 30 },
+    { name: "Month 4", completed: getCompletedCountForMonth(4), total: 30 },
+    { name: "Month 5", completed: getCompletedCountForMonth(5), total: 30 },
+    { name: "Month 6", completed: getCompletedCountForMonth(6), total: 30 },
+  ];
+
+  const completionRate = ((completedCount / 180) * 100).toFixed(1);
+
+  // Generate dynamic XP history data
+  const xpHistoryData = [
+    { day: "Start", xp: 0 },
+    { day: "Current", xp: xp },
+  ];
+
+  const stats = [
+    { label: "Total Active Time", val: `${(completedCount * 3.5).toFixed(1)} Hours`, desc: "Based on 3.5 hrs estimated per day", icon: Clock },
+    { label: "XP Points Earned", val: xp.toLocaleString(), desc: "Accrued in browser database", icon: TrendingUp },
+    { label: "Completion Rate", val: `${completionRate}%`, desc: `${completedCount} of 180 total days completed`, icon: BarChart3 },
+  ];
+
   return (
     <div className="space-y-6">
       <div>
@@ -35,11 +48,7 @@ export default function StatisticsPage() {
 
       {/* Stats Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {[
-          { label: "Total Active Time", val: "48.5 Hours", desc: "Across all curriculum modules", icon: Clock },
-          { label: "Average Time / Day", val: "185 minutes", desc: "Highly consistent learning rate", icon: TrendingUp },
-          { label: "Completion Rate", val: "6.6%", desc: "12 of 180 total curriculum days done", icon: BarChart3 },
-        ].map((item, idx) => (
+        {stats.map((item, idx) => (
           <Card key={idx} className="border border-border/40">
             <CardContent className="p-6 flex items-center justify-between">
               <div className="space-y-1">

@@ -1,26 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
 import { motion } from "framer-motion";
+import { useGame } from "@/components/providers/GameContext";
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const [xp, setXp] = useState(1250);
-  const [level, setLevel] = useState(2);
-  const [streak, setStreak] = useState(5);
-
-  // In a real app, we would fetch this from Supabase/Prisma on mount or pass as props.
-  useEffect(() => {
-    // Mock user statistics fetching
-    setXp(1850);
-    setLevel(2);
-    setStreak(7);
-  }, []);
+  const { xp, level, streak } = useGame();
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-background">

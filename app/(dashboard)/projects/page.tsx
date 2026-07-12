@@ -15,58 +15,14 @@ const GitHubIcon = () => (
   </svg>
 );
 
-interface ProjectItem {
-  id: number;
-  title: string;
-  desc: string;
-  difficulty: "beginner" | "intermediate" | "advanced";
-  time: string;
-  status: "not_started" | "in_progress" | "done";
-  github: string;
-  checklist: string[];
-}
-
-const initialProjects: ProjectItem[] = [
-  {
-    id: 1,
-    title: "Personal Portfolio Site",
-    desc: "Create a modern responsive portfolio page using semantic HTML5 tags and CSS Flexbox/Grid systems.",
-    difficulty: "beginner",
-    time: "6 hrs",
-    status: "done",
-    github: "https://github.com/example/portfolio",
-    checklist: ["Outline basic HTML sections", "Apply CSS styling grids", "Make site mobile responsive", "Deploy to Vercel/GitHub Pages"],
-  },
-  {
-    id: 2,
-    title: "Interactive Weather App",
-    desc: "Build a Javascript application that fetches real-time meteorological weather data using public REST APIs.",
-    difficulty: "intermediate",
-    time: "12 hrs",
-    status: "in_progress",
-    github: "",
-    checklist: ["Create API Developer accounts", "Build dashboard layout", "Implement fetch & error handling", "Add search autocomplete"],
-  },
-  {
-    id: 3,
-    title: "E-Commerce Microservice API",
-    desc: "Design a high-performance shopping cart backend api with JWT session authentication and database schemas.",
-    difficulty: "advanced",
-    time: "24 hrs",
-    status: "not_started",
-    github: "",
-    checklist: ["Design Postgres DB models", "Implement token auth middleware", "Build checkout routes", "Write unit test suite"],
-  },
-];
+import { useGame, ProjectItem } from "@/components/providers/GameContext";
 
 export default function ProjectsPage() {
   const { toast } = useToast();
-  const [projects, setProjects] = useState<ProjectItem[]>(initialProjects);
+  const { projects, updateProjectStatus, updateProjectGithub } = useGame();
 
   const handleUpdateStatus = (id: number, nextStatus: ProjectItem["status"]) => {
-    setProjects((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, status: nextStatus } : p))
-    );
+    updateProjectStatus(id, nextStatus);
     toast({
       variant: "success",
       title: "Project Updated",
@@ -75,9 +31,7 @@ export default function ProjectsPage() {
   };
 
   const handleSaveGithub = (id: number, url: string) => {
-    setProjects((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, github: url } : p))
-    );
+    updateProjectGithub(id, url);
     toast({
       variant: "success",
       title: "Github Link Saved",

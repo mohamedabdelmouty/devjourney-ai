@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
+import { GameProvider } from "@/components/providers/GameContext";
 import { Toaster } from "@/components/ui/toaster";
 
 const inter = Inter({
@@ -38,7 +39,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: process.env.NEXT_PUBLIC_APP_URL,
+    url: "https://devjourney-ai.vercel.app",
     title: "DevJourney AI",
     description: "Your AI-Powered Developer Roadmap — Master Fullstack in 6 Months",
     siteName: "DevJourney AI",
@@ -70,8 +71,10 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          {children}
-          <Toaster />
+          <GameProvider>
+            {children}
+            <Toaster />
+          </GameProvider>
         </ThemeProvider>
       </body>
     </html>
